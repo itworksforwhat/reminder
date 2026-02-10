@@ -49,7 +49,11 @@ class ConnectionManager:
     async def send_personal(self, websocket: WebSocket, message: dict[str, Any]) -> None:
         """개인 메시지를 전송합니다."""
         try:
+<<<<<<< HEAD
             await websocket.send_json(message)
+=======
+            await ws.send_json(message)
+>>>>>>> caa48ec (Implement accounting reminder system with full-stack architecture)
         except Exception:
             pass
 
