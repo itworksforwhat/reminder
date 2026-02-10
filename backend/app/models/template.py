@@ -1,10 +1,6 @@
 import uuid
 from datetime import datetime
-<<<<<<< HEAD
 from sqlalchemy import String, DateTime, Text, Boolean, Integer, JSON, ForeignKey
-=======
-from sqlalchemy import String, DateTime, Text, Boolean, Integer, JSON
->>>>>>> caa48ec (Implement accounting reminder system with full-stack architecture)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -27,11 +23,7 @@ class TemplateItem(Base):
     __tablename__ = "template_items"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-<<<<<<< HEAD
     template_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("templates.id"), nullable=False)
-=======
-    template_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
->>>>>>> caa48ec (Implement accounting reminder system with full-stack architecture)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     month: Mapped[int | None] = mapped_column(Integer, nullable=True)
