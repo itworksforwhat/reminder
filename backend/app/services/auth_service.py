@@ -74,7 +74,9 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str) -> dict:
             detail="User not found or inactive",
         )
 
-    return generate_tokens(user.id)
+    tokens = generate_tokens(user.id)
+    tokens["user"] = user
+    return tokens
 
 
 async def create_company(db: AsyncSession, user: User, data: CompanyCreate) -> Company:

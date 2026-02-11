@@ -85,7 +85,7 @@ export default function TemplatePage() {
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {template.description}
+                    {template.description ?? ''}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                     <Chip

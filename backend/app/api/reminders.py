@@ -40,6 +40,35 @@ async def list_reminders(
     return ReminderListResponse(**result)
 
 
+@router.get("/export/excel")
+async def export_excel(
+    company_id: UUID = Query(...),
+    year: int | None = Query(None),
+    category: str | None = Query(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    output = await export_reminders_to_excel(db, company_id, user.id, year, category)
+
+    filename = f"reminders_{year or 'all'}.xlsx"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.post("/import/excel")
+async def import_excel(
+    company_id: UUID = Query(...),
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await import_reminders_from_excel(db, company_id, user.id, file)
+    return result
+
+
 @router.get("/{reminder_id}", response_model=ReminderResponse)
 async def get_reminder_detail(
     reminder_id: UUID,
@@ -98,32 +127,3 @@ async def delete_reminder_endpoint(
         company_id,
         create_sync_message("deleted", "reminder", str(reminder_id)),
     )
-
-
-@router.get("/export/excel")
-async def export_excel(
-    company_id: UUID = Query(...),
-    year: int | None = Query(None),
-    category: str | None = Query(None),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    output = await export_reminders_to_excel(db, company_id, user.id, year, category)
-
-    filename = f"reminders_{year or 'all'}.xlsx"
-    return StreamingResponse(
-        output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
-    )
-
-
-@router.post("/import/excel")
-async def import_excel(
-    company_id: UUID = Query(...),
-    file: UploadFile = File(...),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await import_reminders_from_excel(db, company_id, user.id, file)
-    return result

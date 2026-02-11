@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, Notification, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, Notification, nativeImage, ipcMain } = require('electron');
 const path = require('path');
 
 let mainWindow = null;
@@ -103,6 +103,29 @@ function showNotification(title, body) {
     notification.show();
   }
 }
+
+// IPC handlers for preload.js
+ipcMain.on('show-notification', (event, { title, body }) => {
+  showNotification(title, body);
+});
+
+ipcMain.on('window-minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.on('window-maximize', () => {
+  if (mainWindow) {
+    mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
+  }
+});
+
+ipcMain.on('window-close', () => {
+  if (mainWindow) mainWindow.close();
+});
+
+ipcMain.handle('get-version', () => {
+  return app.getVersion();
+});
 
 // App lifecycle
 app.whenReady().then(() => {

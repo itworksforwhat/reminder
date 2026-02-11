@@ -39,12 +39,12 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh(data: TokenRefreshRequest, db: AsyncSession = Depends(get_db)):
-    tokens = await refresh_access_token(db, data.refresh_token)
-    return {
-        "access_token": tokens["access_token"],
-        "refresh_token": tokens["refresh_token"],
-        "token_type": "bearer",
-    }
+    result = await refresh_access_token(db, data.refresh_token)
+    return TokenResponse(
+        access_token=result["access_token"],
+        refresh_token=result["refresh_token"],
+        user=UserResponse.model_validate(result["user"]),
+    )
 
 
 @router.get("/me", response_model=UserResponse)

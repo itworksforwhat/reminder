@@ -81,7 +81,7 @@ export default function TemplateApplyDialog({ open, onClose, templates, onPrevie
           >
             {templates.map((t) => (
               <MenuItem key={t.id} value={t.id}>
-                {t.name} - {t.description}
+                {t.name}{t.description ? ` - ${t.description}` : ''}
               </MenuItem>
             ))}
           </TextField>
