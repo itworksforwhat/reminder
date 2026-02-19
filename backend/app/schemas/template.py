@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import datetime, date
 
@@ -32,7 +32,7 @@ class TemplateResponse(BaseModel):
 class TemplateApplyRequest(BaseModel):
     template_id: UUID
     company_id: UUID
-    year: int
+    year: int = Field(..., ge=2000, le=2100)
 
 
 class GeneratedReminder(BaseModel):

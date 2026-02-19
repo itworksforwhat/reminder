@@ -184,7 +184,16 @@ async def import_reminders_from_excel(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     content = await file.read()
-    wb = load_workbook(io.BytesIO(content), read_only=True)
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
+
+    try:
+        wb = load_workbook(io.BytesIO(content), read_only=True)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Excel file format. Please upload a valid .xlsx file.",
+        )
     ws = wb.active
 
     imported = []

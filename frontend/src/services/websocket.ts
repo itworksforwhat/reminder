@@ -8,10 +8,17 @@ class WebSocketService {
   private reconnectTimer: number | null = null;
   private companyId: string | null = null;
   private token: string | null = null;
+  private retryCount = 0;
+  private readonly maxRetries = 10;
+  private readonly baseDelay = 1000;
+  private readonly maxDelay = 30000;
+  private intentionalClose = false;
 
   connect(companyId: string, token: string): void {
     this.companyId = companyId;
     this.token = token;
+    this.retryCount = 0;
+    this.intentionalClose = false;
     this.doConnect();
   }
 
@@ -26,6 +33,7 @@ class WebSocketService {
 
     this.ws.onopen = () => {
       console.log('WebSocket connected');
+      this.retryCount = 0;
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
@@ -43,7 +51,9 @@ class WebSocketService {
 
     this.ws.onclose = () => {
       console.log('WebSocket disconnected');
-      this.scheduleReconnect();
+      if (!this.intentionalClose) {
+        this.scheduleReconnect();
+      }
     };
 
     this.ws.onerror = (error) => {
@@ -53,13 +63,21 @@ class WebSocketService {
 
   private scheduleReconnect(): void {
     if (this.reconnectTimer) return;
+    if (this.retryCount >= this.maxRetries) {
+      console.warn(`WebSocket: max retries (${this.maxRetries}) reached, giving up`);
+      return;
+    }
+    const delay = Math.min(this.baseDelay * Math.pow(2, this.retryCount), this.maxDelay);
+    this.retryCount++;
+    console.log(`WebSocket: reconnecting in ${delay}ms (attempt ${this.retryCount}/${this.maxRetries})`);
     this.reconnectTimer = window.setTimeout(() => {
       this.reconnectTimer = null;
       this.doConnect();
-    }, 3000);
+    }, delay);
   }
 
   disconnect(): void {
+    this.intentionalClose = true;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -70,6 +88,7 @@ class WebSocketService {
     }
     this.companyId = null;
     this.token = null;
+    this.retryCount = 0;
   }
 
   onMessage(handler: MessageHandler): () => void {

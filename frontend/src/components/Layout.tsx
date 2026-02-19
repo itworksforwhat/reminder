@@ -9,7 +9,7 @@ import {
   Dashboard as DashboardIcon,
   CalendarMonth as CalendarIcon,
   Description as TemplateIcon,
-  Settings as SettingsIcon,
+  Notifications as NotificationsIcon,
   Menu as MenuIcon,
   Logout as LogoutIcon,
   Business as BusinessIcon,
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { path: '/', label: '대시보드', icon: <DashboardIcon /> },
   { path: '/calendar', label: '캘린더', icon: <CalendarIcon /> },
   { path: '/templates', label: '템플릿', icon: <TemplateIcon /> },
+  { path: '/notifications', label: '알림', icon: <NotificationsIcon /> },
 ];
 
 export default function Layout() {

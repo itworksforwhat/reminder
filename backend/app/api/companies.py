@@ -16,6 +16,10 @@ class MemberInviteRequest(BaseModel):
     role: str = "member"
 
 
+class UpdateMemberRoleRequest(BaseModel):
+    role: str
+
+
 class MemberResponse(BaseModel):
     id: UUID
     user_id: UUID
@@ -155,11 +159,11 @@ async def invite_member(
     )
 
 
-@router.put("/{company_id}/members/{member_id}")
+@router.put("/{company_id}/members/{member_id}", response_model=MemberResponse)
 async def update_member_role(
     company_id: UUID,
     member_id: UUID,
-    data: dict,
+    data: UpdateMemberRoleRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -177,12 +181,22 @@ async def update_member_role(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
 
     try:
-        target.role = MemberRole(data.get("role", "member"))
+        target.role = MemberRole(data.role)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid role. Must be one of: {[r.value for r in MemberRole]}",
+        )
 
     await db.flush()
-    return {"status": "updated"}
+    return MemberResponse(
+        id=target.id,
+        user_id=target.user_id,
+        user_name=target.user.name,
+        user_email=target.user.email,
+        role=target.role.value if isinstance(target.role, MemberRole) else target.role,
+        joined_at=target.joined_at.isoformat(),
+    )
 
 
 @router.delete("/{company_id}/members/{member_id}", status_code=204)

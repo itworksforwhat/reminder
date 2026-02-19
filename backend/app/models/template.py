@@ -1,12 +1,15 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, Text, Boolean, Integer, JSON, ForeignKey
+from sqlalchemy import String, DateTime, Text, Boolean, Integer, JSON, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 
 class Template(Base):
     __tablename__ = "templates"
+    __table_args__ = (
+        Index("ix_template_name_system", "name", "is_system"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -16,14 +19,20 @@ class Template(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    items = relationship("TemplateItem", back_populates="template", lazy="selectin", order_by="TemplateItem.month, TemplateItem.day")
+    items = relationship(
+        "TemplateItem", back_populates="template",
+        cascade="all, delete-orphan", lazy="selectin",
+        order_by="TemplateItem.month, TemplateItem.day",
+    )
 
 
 class TemplateItem(Base):
     __tablename__ = "template_items"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    template_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("templates.id"), nullable=False)
+    template_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("templates.id", ondelete="CASCADE"), nullable=False,
+    )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     month: Mapped[int | None] = mapped_column(Integer, nullable=True)

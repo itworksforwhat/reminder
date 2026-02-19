@@ -64,8 +64,15 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str) -> dict:
             detail="Invalid token type",
         )
 
-    user_id = payload.get("sub")
-    result = await db.execute(select(User).where(User.id == UUID(user_id)))
+    user_id_str = payload.get("sub")
+    try:
+        user_id = UUID(user_id_str)
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
     if not user or not user.is_active:

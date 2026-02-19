@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Box, Typography, Button, Grid, Paper, Chip, TextField,
   MenuItem, ToggleButtonGroup, ToggleButton, LinearProgress,
-  IconButton, Tooltip, Alert,
+  IconButton, Tooltip, Alert, Snackbar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -10,8 +10,7 @@ import {
   FileUpload as ImportIcon,
   FilterList as FilterIcon,
 } from '@mui/icons-material';
-import { format, isToday, isPast } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { isToday, isPast } from 'date-fns';
 import type { Reminder, ReminderCreate, ReminderUpdate } from '../types';
 import { CATEGORIES } from '../types';
 import { useReminders } from '../hooks/useReminders';
@@ -43,10 +42,12 @@ export default function DashboardPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false, message: '', severity: 'success',
+  });
 
   // Summary stats
   const stats = useMemo(() => {
-    const today = new Date();
     const todayItems = reminders.filter((r) => isToday(new Date(r.deadline)) && !r.completed);
     const overdue = reminders.filter((r) => isPast(new Date(r.deadline)) && !isToday(new Date(r.deadline)) && !r.completed);
     const upcoming = reminders.filter((r) => !r.completed && !isPast(new Date(r.deadline)));
@@ -72,8 +73,10 @@ export default function DashboardPage() {
       link.download = `reminders_${year}.xlsx`;
       link.click();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Export failed:', err);
+      setSnackbar({ open: true, message: 'Excel 파일을 다운로드했습니다.', severity: 'success' });
+    } catch (err: any) {
+      const message = err.response?.data?.detail || 'Excel 내보내기에 실패했습니다.';
+      setSnackbar({ open: true, message, severity: 'error' });
     }
   };
 
@@ -82,9 +85,13 @@ export default function DashboardPage() {
     try {
       await remindersApi.importExcel(company.id, e.target.files[0]);
       fetchReminders();
-    } catch (err) {
-      console.error('Import failed:', err);
+      setSnackbar({ open: true, message: 'Excel 파일을 가져왔습니다.', severity: 'success' });
+    } catch (err: any) {
+      const message = err.response?.data?.detail || 'Excel 가져오기에 실패했습니다.';
+      setSnackbar({ open: true, message, severity: 'error' });
     }
+    // Reset input so the same file can be imported again
+    e.target.value = '';
   };
 
   if (!company) {
@@ -225,6 +232,22 @@ export default function DashboardPage() {
         onSave={handleSave}
         reminder={editingReminder}
       />
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

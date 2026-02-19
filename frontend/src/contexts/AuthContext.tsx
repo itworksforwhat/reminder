@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { User, Company } from '../types';
 import { authApi } from '../services/api';
+import { wsService } from '../services/websocket';
 
 interface AuthState {
   user: User | null;
@@ -26,6 +27,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: false,
     isLoading: true,
   });
+
+  // Connect/disconnect WebSocket when auth state or company changes
+  useEffect(() => {
+    if (state.isAuthenticated && state.company) {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        wsService.connect(state.company.id, token);
+      }
+    } else {
+      wsService.disconnect();
+    }
+    return () => {
+      wsService.disconnect();
+    };
+  }, [state.isAuthenticated, state.company]);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -72,8 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    wsService.disconnect();
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('current_company');
     setState({ user: null, company: null, isAuthenticated: false, isLoading: false });
   }, []);
 

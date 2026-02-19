@@ -26,8 +26,8 @@ async def list_reminders(
     page_size: int = Query(20, ge=1, le=100),
     category: str | None = Query(None),
     completed: bool | None = Query(None),
-    year: int | None = Query(None),
-    month: int | None = Query(None),
+    year: int | None = Query(None, ge=2000, le=2100),
+    month: int | None = Query(None, ge=1, le=12),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

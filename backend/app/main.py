@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,24 +9,37 @@ from app.utils.websocket import manager
 from app.database import get_engine, Base, get_session_factory
 from app.services.template_engine import seed_system_templates
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     engine = get_engine()
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database schema created successfully")
+    except Exception as e:
+        logger.error(f"Failed to create database schema: {e}")
+        raise
 
-    # Seed system templates
-    session_factory = get_session_factory()
-    async with session_factory() as session:
-        await seed_system_templates(session)
-        await session.commit()
+    try:
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            await seed_system_templates(session)
+            await session.commit()
+        logger.info("System templates seeded successfully")
+    except Exception as e:
+        logger.warning(f"Failed to seed system templates: {e}")
 
     yield
 
     # Shutdown
-    await engine.dispose()
+    try:
+        await engine.dispose()
+    except Exception as e:
+        logger.warning(f"Error during engine disposal: {e}")
 
 
 app = FastAPI(
@@ -55,7 +69,6 @@ async def websocket_endpoint(
     company_id: UUID,
     token: str = Query(None),
 ):
-    # 간단한 토큰 검증
     if not token:
         await websocket.close(code=4001, reason="Authentication required")
         return
@@ -71,14 +84,18 @@ async def websocket_endpoint(
         return
 
     await manager.connect(websocket, company_id)
+    logger.info(f"WebSocket connected: company={company_id}, connections={manager.active_connections_count}")
 
     try:
         while True:
             data = await websocket.receive_json()
-            # 클라이언트에서 보낸 메시지를 같은 회사의 다른 클라이언트에 전달
             await manager.broadcast_to_company(company_id, data, exclude=websocket)
     except WebSocketDisconnect:
         manager.disconnect(websocket, company_id)
+        logger.info(f"WebSocket disconnected: company={company_id}, connections={manager.active_connections_count}")
+    except Exception as e:
+        manager.disconnect(websocket, company_id)
+        logger.warning(f"WebSocket error: company={company_id}, error={e}")
 
 
 @app.get("/health")

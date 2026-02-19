@@ -497,6 +497,68 @@ class TestNotificationEndpoints:
         assert isinstance(resp.json(), list)
 
 
+class TestExcelImport:
+    """Excel 가져오기 API 엔드포인트 테스트."""
+
+    async def _setup(self, client):
+        email = f"excel_{uuid4().hex[:8]}@example.com"
+        reg = await client.post("/api/auth/register", json={
+            "email": email, "password": "password123", "name": "엑셀유저",
+        })
+        token = reg.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        company_resp = await client.post("/api/auth/companies", json={
+            "name": "엑셀회사",
+        }, headers=headers)
+        company_id = company_resp.json()["id"]
+        return headers, company_id
+
+    async def test_import_invalid_file(self, client):
+        headers, company_id = await self._setup(client)
+        resp = await client.post(
+            f"/api/reminders/import/excel?company_id={company_id}",
+            files={"file": ("test.xlsx", b"not an excel file", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+            headers=headers,
+        )
+        assert resp.status_code == 400
+
+    async def test_import_empty_file(self, client):
+        headers, company_id = await self._setup(client)
+        resp = await client.post(
+            f"/api/reminders/import/excel?company_id={company_id}",
+            files={"file": ("test.xlsx", b"", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+            headers=headers,
+        )
+        assert resp.status_code == 400
+
+    async def test_export_then_import(self, client):
+        headers, company_id = await self._setup(client)
+
+        # Create a reminder to export
+        await client.post(
+            f"/api/reminders?company_id={company_id}",
+            json={"title": "수출테스트", "category": "기타", "deadline": "2026-01-15"},
+            headers=headers,
+        )
+
+        # Export
+        export_resp = await client.get(
+            f"/api/reminders/export/excel?company_id={company_id}",
+            headers=headers,
+        )
+        assert export_resp.status_code == 200
+        excel_content = export_resp.content
+
+        # Import the exported file
+        import_resp = await client.post(
+            f"/api/reminders/import/excel?company_id={company_id}",
+            files={"file": ("reminders.xlsx", excel_content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+            headers=headers,
+        )
+        assert import_resp.status_code == 200
+
+
 class TestSchemaValidation:
     """Pydantic 스키마 유효성 검사 테스트."""
 

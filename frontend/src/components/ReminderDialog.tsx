@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, MenuItem, Box,
+  Button, TextField, MenuItem, Box, Alert,
 } from '@mui/material';
 import type { Reminder, ReminderCreate, ReminderUpdate } from '../types';
 import { CATEGORIES } from '../types';
@@ -20,6 +20,7 @@ export default function ReminderDialog({ open, onClose, onSave, reminder }: Prop
   const [deadline, setDeadline] = useState('');
   const [priority, setPriority] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (reminder) {
@@ -35,9 +36,11 @@ export default function ReminderDialog({ open, onClose, onSave, reminder }: Prop
       setDeadline('');
       setPriority(0);
     }
+    setError(null);
   }, [reminder, open]);
 
   const handleSubmit = async () => {
+    setError(null);
     setSaving(true);
     try {
       if (reminder) {
@@ -46,8 +49,9 @@ export default function ReminderDialog({ open, onClose, onSave, reminder }: Prop
         await onSave({ title, description, category, deadline, priority } as ReminderCreate);
       }
       onClose();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      const message = err.response?.data?.detail || '저장에 실패했습니다. 다시 시도해주세요.';
+      setError(message);
     } finally {
       setSaving(false);
     }
@@ -58,6 +62,7 @@ export default function ReminderDialog({ open, onClose, onSave, reminder }: Prop
       <DialogTitle>{reminder ? '일정 수정' : '새 일정'}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
           <TextField
             label="제목"
             value={title}

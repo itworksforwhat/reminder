@@ -17,5 +17,9 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    owned_companies = relationship("Company", back_populates="owner", lazy="selectin")
-    memberships = relationship("CompanyMember", back_populates="user", lazy="selectin")
+    owned_companies = relationship(
+        "Company", back_populates="owner", cascade="all, delete-orphan", lazy="selectin",
+    )
+    memberships = relationship(
+        "CompanyMember", back_populates="user", cascade="all, delete-orphan", lazy="selectin",
+    )

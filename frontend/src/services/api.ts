@@ -10,6 +10,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 const api = axios.create({
   baseURL: `${API_BASE}/api`,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
 });
 
 // Request interceptor: attach token
@@ -114,6 +115,18 @@ export const templatesApi = {
 
   apply: (request: TemplateApplyRequest) =>
     api.post<Reminder[]>('/templates/apply', request),
+};
+
+// Notifications API
+export const notificationsApi = {
+  summary: () => api.get('/notifications/summary'),
+
+  today: () => api.get('/notifications/today'),
+
+  overdue: () => api.get('/notifications/overdue'),
+
+  upcoming: (days?: number) =>
+    api.get('/notifications/upcoming', { params: days ? { days } : undefined }),
 };
 
 export default api;

@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
@@ -8,7 +8,7 @@ from app.schemas.template import (
 )
 from app.schemas.reminder import ReminderResponse
 from app.models.template import Template
-from app.services.template_engine import apply_template, SYSTEM_TEMPLATES, generate_reminders_from_template
+from app.services.template_engine import apply_template, generate_reminders_from_template
 from app.utils.security import get_current_user
 from app.utils.websocket import manager, create_sync_message
 from app.models.user import User
@@ -35,7 +35,6 @@ async def get_template(
     result = await db.execute(select(Template).where(Template.id == template_id))
     template = result.scalar_one_or_none()
     if not template:
-        from fastapi import HTTPException, status
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
     return TemplateResponse.model_validate(template)
 
@@ -50,7 +49,6 @@ async def preview_template(
     result = await db.execute(select(Template).where(Template.id == request.template_id))
     template = result.scalar_one_or_none()
     if not template:
-        from fastapi import HTTPException, status
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
     template_data = {

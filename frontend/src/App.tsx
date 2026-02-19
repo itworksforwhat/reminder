@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, Box, CircularProgress } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import CalendarPage from './pages/CalendarPage';
 import TemplatePage from './pages/TemplatePage';
+import NotificationsPage from './pages/NotificationsPage';
 
 const theme = createTheme({
   palette: {
@@ -43,11 +44,19 @@ const theme = createTheme({
   },
 });
 
+function LoadingScreen() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <CircularProgress />
+    </Box>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return null;
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
@@ -60,7 +69,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) return null;
+  if (isLoading) return <LoadingScreen />;
 
   return (
     <Routes>
@@ -82,6 +91,7 @@ function AppRoutes() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/templates" element={<TemplatePage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
