@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Paper, Alert, LinearProgress,
-  List, ListItem, ListItemText, ListItemIcon, Chip, Divider, Button,
+  List, ListItem, ListItemText, Chip, Divider, Button,
 } from '@mui/material';
 import {
   Warning as OverdueIcon,
@@ -15,20 +15,23 @@ import { notificationsApi } from '../services/api';
 import { PRIORITY_LABELS, PRIORITY_COLORS } from '../types';
 
 interface NotificationReminder {
-  id: string;
+  reminder_id: string;
   title: string;
   category: string;
   deadline: string;
   priority: number;
-  description: string | null;
-  d_day: number;
+  d_day_label: string;
+  company_id: string;
+  days_overdue?: number;
+  days_left?: number;
 }
 
 interface NotificationSummary {
-  today_count: number;
-  overdue_count: number;
-  upcoming_count: number;
-  high_priority_count: number;
+  today: { count: number; items: NotificationReminder[] };
+  overdue: { count: number; items: NotificationReminder[] };
+  upcoming_7days: { count: number; items: NotificationReminder[] };
+  total_pending: number;
+  generated_at: string;
 }
 
 export default function NotificationsPage() {
@@ -104,12 +107,12 @@ export default function NotificationsPage() {
       ) : (
         <List disablePadding>
           {items.map((item, idx) => (
-            <React.Fragment key={item.id}>
+            <React.Fragment key={item.reminder_id}>
               {idx > 0 && <Divider />}
               <ListItem sx={{ py: 1.5 }}>
                 <ListItemText
                   primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                       <Typography fontWeight={600}>{item.title}</Typography>
                       <Chip label={item.category} size="small" variant="outlined" />
                       <Chip
@@ -124,16 +127,16 @@ export default function NotificationsPage() {
                       <Typography variant="body2" color="text.secondary">
                         {formatDeadline(item.deadline)}
                       </Typography>
-                      {item.d_day !== undefined && (
-                        <Typography variant="body2" fontWeight={600} color={item.d_day < 0 ? 'error.main' : item.d_day === 0 ? 'warning.main' : 'info.main'}>
-                          {item.d_day === 0 ? 'D-Day' : item.d_day < 0 ? `D+${Math.abs(item.d_day)}` : `D-${item.d_day}`}
-                        </Typography>
-                      )}
-                      {item.description && (
-                        <Typography variant="body2" color="text.secondary">
-                          {item.description}
-                        </Typography>
-                      )}
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        color={
+                          item.days_overdue ? 'error.main' :
+                          item.d_day_label === 'D-Day' ? 'warning.main' : 'info.main'
+                        }
+                      >
+                        {item.d_day_label}
+                      </Typography>
                     </Box>
                   }
                 />
@@ -149,13 +152,20 @@ export default function NotificationsPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" fontWeight={700}>알림</Typography>
-        <Button onClick={fetchNotifications} variant="outlined" size="small">새로고침</Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {summary && (
+            <Typography variant="body2" color="text.secondary">
+              총 미완료: {summary.total_pending}건
+            </Typography>
+          )}
+          <Button onClick={fetchNotifications} variant="outlined" size="small">새로고침</Button>
+        </Box>
       </Box>
 
       {loading && <LinearProgress sx={{ mb: 2 }} />}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {!loading && summary && (
+      {!loading && (
         <>
           {renderReminderList(
             overdueItems,
